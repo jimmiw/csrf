@@ -26,15 +26,16 @@ composer require jimmiw/csrf
 Using the component is pretty easy, simply construct the class and call generateToken.
 
 ```
-use Westsworld\CSRF\Csrf;
+use Westsworld\CSRF\Generator;
 
 // you can add a custom session handler, when creating the token handler in the construct method.
-$tokenHandler = new Csrf();
+$tokenHandler = new Generator();
 // the generated token is stored in the session
 $token = $tokenHandler->generateToken();
 
 <form method="post">
-  <input type="hidden" name="my-csrf-token" value="<?php echo $token; ?>" />
+  <input type="hidden" name="<?php echo $token->getKey(); ?>" value="<?php echo $token->getValue(); ?>" />
+  <input type="hidden" name="token-key" value="<?php echo $token->getKey(); ?>" />
   ... other form fields here
 </form>
 ```
@@ -42,11 +43,10 @@ $token = $tokenHandler->generateToken();
 When the form is posted to your page, simply create a new token handler and call validateToken:
 
 ```
-$tokenHandler = new Csrf();
-if (! $tokenHandler->validateToken($_POST['my-csrf-token'])) {
+$tokenHandler = new Generator();
+if (! $tokenHandler->validateToken($_POST['token-key'])) {
     exit('token is not valid!');
 } else {
     // handle the form saving here
 }
 ```
-

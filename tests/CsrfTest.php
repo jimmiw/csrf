@@ -2,9 +2,9 @@
 
 namespace Westsworld\CSRF\Tests;
 
-use ArrayObject;
 use PHPUnit\Framework\TestCase;
-use Westsworld\CSRF\Csrf;
+use Westsworld\CSRF\Generator;
+use Westsworld\CSRF\Token;
 
 class CsrfTest extends TestCase
 {
@@ -14,59 +14,43 @@ class CsrfTest extends TestCase
      */
     public function testTokenGeneration()
     {
-        $session = new ArrayObject();
-        $tokenHandler = new Csrf($session);
+        $tokenHandler = new Generator();
         $token = $tokenHandler->generateToken();
-        // making sure that the actual session is empty, since a session handler was passed to the constructor
-        static::assertEmpty($_SESSION);
 
-        static::assertNotNull($session[Csrf::TOKEN_SESSION_KEY]);
-        static::assertEquals($token, $session[Csrf::TOKEN_SESSION_KEY]);
+        static::assertNotNull($_SESSION[$token->getKey()]);
+        static::assertEquals($token->getValue(), $_SESSION[$token->getKey()]);
     }
 
     public function testResetCurrentToken()
     {
-        $session = new ArrayObject();
-        $tokenHandler = new Csrf($session);
+        $tokenHandler = new Generator();
         $token = $tokenHandler->generateToken();
-        static::assertEmpty($_SESSION);
-
+        
         // testing that we have a token in the session
-        static::assertNotNull($session[Csrf::TOKEN_SESSION_KEY]);
+        static::assertNotNull($_SESSION[$token->getKey()]);
 
-        $tokenHandler->resetToken();
+        $tokenHandler->resetToken($token->getKey());
         // the token should now be removed
-        static::assertNull($session[Csrf::TOKEN_SESSION_KEY]);
+        static::assertNull($_SESSION[$token->getKey()]);
 
     }
 
     public function testValidateCurrentToken()
     {
-        $session = new ArrayObject();
-        $tokenHandler = new Csrf($session);
+        $tokenHandler = new Generator();
         $token = $tokenHandler->generateToken();
-        static::assertEmpty($_SESSION);
-
+    
         // testing if we can validate the current token
-        static::assertTrue($tokenHandler->validateToken($token));
+        static::assertTrue($tokenHandler->validateToken($token->getValue(), $token->getKey()));
 
         // removing current token
-        $tokenHandler->resetToken();
+        $tokenHandler->resetToken($token->getKey());
         // should no longer be able to validate the token
-        static::assertFalse($tokenHandler->validateToken($token));
+        static::assertFalse($tokenHandler->validateToken($token->getValue(), $token->getKey()));
 
         // generating two token, where token2 should validate, but not token1 since it's too old
         $token1 = $tokenHandler->generateToken();
         $token2 = $tokenHandler->generateToken();
-        static::assertTrue($tokenHandler->validateToken($token2));
-    }
-
-    public function testSessionHandling()
-    {
-        session_start();
-        $tokenHandler = new Csrf();
-        $token = $tokenHandler->generateToken();
-
-        static::assertNotNull($_SESSION[Csrf::TOKEN_SESSION_KEY]);
+        static::assertTrue($tokenHandler->validateToken($token2->getValue(), $token2->getKey()));
     }
 }
